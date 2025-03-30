@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package sensor;
+
+service SensorService {
+    rpc GetSensorData (SensorRequest) returns (SensorResponse);
+}
+
+message SensorRequest {
+    string device_id = 1;
+}
+
+message SensorResponse {
+    string device_id = 1;
+    string device_name = 2;
+    string device_type = 3;
+    string status = 4;
+    string last_maintenance = 5;
+    string next_maintenance_due = 6;
+
+    float temperature = 7;
+    string temperature_unit = 8;
+    float humidity = 9;
+    string humidity_unit = 10;
+
+    string site = 11;
+    string room = 12;
+    float latitude = 13;
+    float longitude = 14;
+}

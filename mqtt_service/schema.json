@@ -1,0 +1,57 @@
+{
+    "device": {
+        "device_id": "<device_id>",
+        "device_name": "Temperature_Humidity_Sensor",
+        "device_type": "Sensor",
+        "location": {
+            "site": "Factory A",
+            "room": "Production Line 3",
+            "coordinates": {
+                "latitude": 37.7749,
+                "longitude": -122.4194
+            }
+        },
+        "status": "active",
+        "last_maintenance": "2025-02-15T10:30:00Z",
+        "next_maintenance_due": "2025-08-15T10:30:00Z"
+    },
+    "sensor_data": {
+        "timestamp": "<timestamp>",
+        "data": [
+            {
+                "sensor_id": "temp_sensor_001",
+                "sensor_type": "Temperature",
+                "value": "",
+                "unit": "C",
+                "status": "normal",
+                "alarm": {
+                    "status": "none",
+                    "thresholds": {
+                        "min": 10,
+                        "max": 40
+                    }
+                }
+            },
+            {
+                "sensor_id": "humidity_sensor_001",
+                "sensor_type": "Humidity",
+                "value": <humidity>,
+                "unit": "%",
+                "status": "normal",
+                "alarm": {
+                    "status": "none",
+                    "thresholds": {
+                        "min": 30,
+                        "max": 70
+                    }
+                }
+            }
+        ]
+    },
+    "metadata": {
+        "data_quality": "high",
+        "data_source": "IoT_Device_01",
+        "protocol": "HTTP",
+        "data_format": "JSON"
+    }
+}
