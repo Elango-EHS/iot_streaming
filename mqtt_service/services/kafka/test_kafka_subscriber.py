@@ -4,7 +4,7 @@ import time
 from confluent_kafka import Consumer, KafkaException, KafkaError
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
-
+import sensor_pb2  # Import the generated Protobuf module
 # Configuration for Kafka Consumer
 conf = {
     'bootstrap.servers': 'localhost:9092',  # Kafka broker address
@@ -48,30 +48,64 @@ try:
         else:
             # Successfully received message
             try:
-                # Decode the message (assuming base64 encoding)
-                decoded_message = base64.b64decode(msg.value()).decode('utf-8')  # Decode bytes to string
-                print(f"Received message: {decoded_message}")
+                # Debug raw Kafka message
+                print(f"Message topic: {msg.topic()}")
+                print(f"Message partition: {msg.partition()}")
+                print(f"Message offset: {msg.offset()}")
+                print(f"Message key: {msg.key()}")
+                print(f"Message value: {msg.value()}")
 
-                # Check if the message is empty
-                if not decoded_message.strip():
-                    print("Received an empty message, skipping...")
-                    continue
+                # Parse the JSON payload
+                payload = json.loads(msg.value().decode("utf-8"))
+                print(f"Parsed payload: {payload}")
 
-                # Parse the decoded message as JSON
-                try:
-                    decoded_json = json.loads(decoded_message)  # Convert the JSON string into a dictionary
-                    # Dump the JSON message
-                    print(f"Dumped JSON: {json.dumps(decoded_json, indent=2)}")
+                # Extract metadata
+                message_timestamp = payload.get("timestamp", 0)
+                sequence_number = payload.get("seq", 0)
+
+                # Extract and decode Base64-encoded Protobuf data from the metrics
+                metrics = payload.get("metrics", [])
+                for metric in metrics:
+                    encoded_data = metric.get("value", "")
+                    if not encoded_data:
+                        print("No encoded data found in metric, skipping...")
+                        continue
+
+                    # Decode Base64-encoded Protobuf data
+                    protobuf_bytes = base64.b64decode(encoded_data)
+
+                    # Deserialize Protobuf message
+                    sensor_data = sensor_pb2.SensorResponse()
+                    sensor_data.ParseFromString(protobuf_bytes)  # Deserialize the message
+                    print(f"Decoded Protobuf message: {sensor_data}")
+
+                    # Convert Protobuf message to a dictionary
+                    decoded_message = {
+                        "device_id": sensor_data.device_id,
+                        "device_name": sensor_data.device_name,
+                        "device_type": sensor_data.device_type,
+                        "status": sensor_data.status,
+                        "last_maintenance": sensor_data.last_maintenance,
+                        "next_maintenance_due": sensor_data.next_maintenance_due,
+                        "temperature": sensor_data.temperature,
+                        "temperature_unit": sensor_data.temperature_unit,
+                        "humidity": sensor_data.humidity,
+                        "humidity_unit": sensor_data.humidity_unit,
+                        "site": sensor_data.site,
+                        "room": sensor_data.room,
+                        "latitude": sensor_data.latitude,
+                        "longitude": sensor_data.longitude,
+                    }
+                    print(f"Decoded message: {decoded_message}")
 
                     # Insert the JSON into InfluxDB
-                    point = Point("iot_data").tag("source", "kafka").field("data", json.dumps(decoded_json))
+                    point = Point("iot_data").tag("source", "kafka").field("data", json.dumps(decoded_message))
                     write_api.write(bucket=influxdb_bucket, org=influxdb_org, record=point)
                     print("Inserted JSON into InfluxDB")
 
-                except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON: {e} - Message: {decoded_message}")
             except Exception as e:
                 print(f"Error processing message: {e}")
+                continue
 
 except KeyboardInterrupt:
     print("Consumer interrupted, closing...")

@@ -1,10 +1,10 @@
 import time
 import json
 import base64
-import random
 import paho.mqtt.client as mqtt
 import sensor_pb2  # Import the generated Protobuf module
 import datetime  # Import datetime module for UTC conversion
+import sys  # Import sys to handle command-line arguments
 
 # MQTT Configuration
 BROKER = "127.0.0.1"  # Change to your MQTT broker address
@@ -19,7 +19,7 @@ mqtt_client.loop_start()
 # Sequence number for Sparkplug messages
 sequence_number = 0
 
-def generate_sensor_data():
+def generate_sensor_data(temperature, humidity):
     """Generates sensor data and encodes it using Protobuf."""
     sensor_data = sensor_pb2.SensorResponse(
         device_id="device_001",
@@ -28,9 +28,9 @@ def generate_sensor_data():
         status="active",
         last_maintenance="2025-02-15T10:30:00Z",
         next_maintenance_due="2025-08-15T10:30:00Z",
-        temperature=round(random.uniform(10.0, 40.0), 2),
-        temperature_unit="C",
-        humidity=round(random.uniform(30.0, 70.0), 2),
+        temperature=temperature,
+        temperature_unit="A",
+        humidity=humidity,
         humidity_unit="%",
         site="Factory A",
         room="Production Line 3",
@@ -39,11 +39,11 @@ def generate_sensor_data():
     )
     return sensor_data
 
-def publish_sensor_data():
+def publish_sensor_data(temperature, humidity):
     global sequence_number
     
     # Generate sensor data
-    sensor_data = generate_sensor_data()
+    sensor_data = generate_sensor_data(temperature, humidity)
 
     # Serialize to Protobuf
     protobuf_payload = sensor_data.SerializeToString()
@@ -80,11 +80,24 @@ def publish_sensor_data():
     # Increment sequence number
     sequence_number += 1
 
-# Publish data every second
-try:
-    while True:
-        publish_sensor_data()
-        time.sleep(1)
-except KeyboardInterrupt:
-    print("MQTT Publisher Stopped")
-    mqtt_client.loop_stop()
+if __name__ == "__main__":
+    # Ensure the script is called with the correct number of arguments
+    if len(sys.argv) != 3:
+        print("Usage: python sensor_publisher.py <temperature> <humidity>")
+        sys.exit(1)
+
+    # Parse the temperature and humidity arguments
+    try:
+        temperature = float(sys.argv[1])
+        humidity = float(sys.argv[2])
+    except ValueError:
+        print("Error: Temperature and Humidity must be numeric values.")
+        sys.exit(1)
+
+    try:
+        # Publish the sensor data
+        publish_sensor_data(temperature, humidity)
+    except KeyboardInterrupt:
+        print("MQTT Publisher Stopped")
+    finally:
+        mqtt_client.loop_stop()
