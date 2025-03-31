@@ -1,1 +1,1 @@
-# iot_streaming
+# IoT Streaming Sample Project
